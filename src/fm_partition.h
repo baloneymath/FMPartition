@@ -3,7 +3,10 @@
 
 #include <list>
 #include <vector>
+#include <map>
 #include <string>
+#include <cstring>
+#include <fstream>
 using namespace std;
 
 class Net;
@@ -15,7 +18,7 @@ class Cell {
         ~Cell();
         bool isFree();
     private:
-        list<Net*>  netlist; // nets containing Cell i
+        vector<int> netlist; // nets containing Cell i
         int         index; // index of Cell i
         int         part; // which partition that Cell i is in
         int         size; // size of Cell i
@@ -30,10 +33,11 @@ class Net {
         Net(int&);
         ~Net();
     private:
-        list<Cell*> clist; // cell list on the net
+        vector<int> clist; // cell list on the net
         int         nCell; // # of cells on net
         int         lock[2]; // # of locked cells in two partitions
         int         unclock[2]; // # of unclocked cells in two partitions
+        int         index; // index of the net
 };
 
 class FMPartition {
@@ -48,8 +52,10 @@ class FMPartition {
         int         nNet; // total # of nets
         int         nCell; // total # of cells
         double      bf; // balance factor of the size of two partition
-        vector<Cell*> cells;
-        vector<Net*>  nets;
+        vector<Cell*> Cells;
+        vector<Net*>  Nets;
+        map<int, int> cMap; // first: cell index, second: index in vector
+        map<int, int> nMap;
         int         upperbound; // the upperbound of balance
         int         lowerbound; // the lowerbound of balance
         int         Smax; // max size of Cell
