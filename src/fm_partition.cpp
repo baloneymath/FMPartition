@@ -4,12 +4,12 @@
 /****************************************/
 FMPartition::~FMPartition()
 {
- // for (int i = 0; i < nCell; ++i) {
- //     delete Cells[i];
- // }
- // for (int i = 0; i < nNet; ++i) {
- //     delete Nets[i];
- // }
+    for (int i = 0; i < nCell; ++i) {
+        delete Cells[i];
+    }
+    for (int i = 0; i < nNet; ++i) {
+        delete Nets[i];
+    }
 }
 
 inline void split(string& s, const string& delim, vector<string>& v)
