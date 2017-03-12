@@ -5,6 +5,7 @@
 #include <fstream>
 #include "fm_partition.h"
 
+#define _DEBUG
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -16,6 +17,9 @@ int main(int argc, char* argv[])
     FMPartition FM, FM_before;
     FM.parse(filename);
     FM.initGain();
+    #ifdef _DEBUG
+        cout << "original Cutsize: " << FM.countCutSize() << endl;
+    #endif
     int step = -2;
     int counter = 1;
     while (1) {
