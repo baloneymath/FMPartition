@@ -1,13 +1,13 @@
 # CC and CFLAGS are varilables
 CC = g++
-CFLAGS = -c
+CFLAGS = -c -std=c++11
 AR = ar
 ARFLAGS = rcv
 # -c option ask g++ to compile the source files, but do not link.
 # -g option is for debugging version
 # -O2 option is for optimized version
 DBGFLAGS = -g -D_DEBUG_ON_
-OPTFLAGS = -O2
+OPTFLAGS = -O3
 
 all	: FMPartition
 	@echo -n ""
@@ -23,5 +23,5 @@ fm_partition.o	: src/fm_partition.cpp src/fm_partition.h
 
 # clean all the .o and executable files
 clean:
-		rm -rf *.o lib/*.a lib/*.o bin/*
+		rm -rf *.o lib/*.a lib/*.o bin/* FMPartition
 
