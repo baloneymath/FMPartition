@@ -550,22 +550,32 @@ void FMPartition::printCurrentState()
 
 void FMPartition::printPart0Cell()
 {
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[cMap[i]];
+    vector<int> p0;
+    for (int i = 0; i < nCell; ++i) {
+        Cell* c = Cells[i];
         if (c->part == 0) {
-            cout << 'c' << c->index << ' ';
+            p0.push_back(c->index);
         }
+    }
+    std::sort(p0.begin(), p0.end());
+    for (int i = 0; i < p0.size(); ++i) {
+        cout << 'c' << p0[i] << ' ';
     }
     cout << ';' << endl;
 }
 
 void FMPartition::printPart1Cell()
 {
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[cMap[i]];
+    vector<int> p1;
+    for (int i = 0; i < nCell; ++i) {
+        Cell* c = Cells[i];
         if (c->part == 1) {
-            cout << 'c' << c->index << ' ';
+            p1.push_back(c->index);
         }
+    }
+    std::sort(p1.begin(), p1.end());
+    for (int i = 0; i < p1.size(); ++i) {
+        cout << 'c' << p1[i] << ' ';
     }
     cout << ';' << endl;
 }
@@ -579,19 +589,28 @@ void FMPartition::outputFile(string& filename)
     }
     ofile << "Cutsize = " << countCutSize() << endl;
     ofile << "G1 " << part0Size << endl;
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[cMap[i]];
+    vector<int> p0, p1;
+    for (int i = 0; i < nCell; ++i) {
+        Cell* c = Cells[i];
         if (c->part == 0) {
-            ofile << 'c' << c->index << ' ';
+            p0.push_back(c->index);
         }
+    }
+    std::sort(p0.begin(), p0.end());
+    for (int i = 0; i < p0.size(); ++i) {
+        ofile << 'c' << p0[i] << ' ';
     }
     ofile << ';' << endl;
     ofile << "G2 " << part1Size << endl;
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[cMap[i]];
+    for (int i = 0; i < nCell; ++i) {
+        Cell* c = Cells[i];
         if (c->part == 1) {
-            ofile << 'c' << c->index << ' ';
+            p1.push_back(c->index);
         }
+    }
+    std::sort(p1.begin(), p1.end());
+    for (int i = 0; i < p1.size(); ++i) {
+        ofile << 'c' << p1[i] << ' ';
     }
     ofile << ';' << endl;
 }
