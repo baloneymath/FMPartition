@@ -16,6 +16,7 @@
 #include <algorithm>
 //#include <boost/algorithm/string.hpp>a
 
+#define _DEBUG
 #define INT_MIN -999999999
 
 using namespace std;

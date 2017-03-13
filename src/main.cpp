@@ -5,7 +5,6 @@
 #include <fstream>
 #include "fm_partition.h"
 
-#define _DEBUG
 using namespace std;
 
 int main(int argc, char* argv[])
