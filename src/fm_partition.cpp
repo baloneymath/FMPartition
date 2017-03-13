@@ -557,6 +557,7 @@ void FMPartition::printPart0Cell()
     }
     cout << ';' << endl;
 }
+
 void FMPartition::printPart1Cell()
 {
     for (int i = 1; i <= nCell; ++i) {
@@ -566,4 +567,30 @@ void FMPartition::printPart1Cell()
         }
     }
     cout << ';' << endl;
+}
+
+void FMPartition::outputFile(string& filename)
+{
+    ofstream ofile;
+    ofile.open(filename, ofstream::out);
+    if (!ofile.is_open()) {
+        cerr << "Error writing output file!!" << endl;
+    }
+    ofile << "Cutsize = " << countCutSize() << endl;
+    ofile << "G1 " << part0Size << endl;
+    for (int i = 1; i <= nCell; ++i) {
+        Cell* c = Cells[cMap[i]];
+        if (c->part == 0) {
+            ofile << 'c' << c->index << ' ';
+        }
+    }
+    ofile << ';' << endl;
+    ofile << "G2 " << part1Size << endl;
+    for (int i = 1; i <= nCell; ++i) {
+        Cell* c = Cells[cMap[i]];
+        if (c->part == 1) {
+            ofile << 'c' << c->index << ' ';
+        }
+    }
+    ofile << ';' << endl;
 }

@@ -54,5 +54,9 @@ int main(int argc, char* argv[])
     FM.printPart0Cell();
     cout << "G2 " << p1size << endl;
     FM.printPart1Cell();
+    if (argc == 3) {
+        string ofile = argv[2];
+        FM.outputFile(ofile);
+    }
     return 0;
 }

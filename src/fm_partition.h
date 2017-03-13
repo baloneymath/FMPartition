@@ -85,6 +85,7 @@ class FMPartition {
         void    printCurrentState();
         void    printPart0Cell();
         void    printPart1Cell();
+        void    outputFile(string&);
 
     private:
         int             nNet; // total # of nets
