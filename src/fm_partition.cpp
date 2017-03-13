@@ -33,7 +33,8 @@ void FMPartition::parse(string& filename)
     f.open(filename, ifstream::in);
 
     if (!f.is_open()) {
-        cerr << "Error occur when opening file" << endl;
+       cerr << "Error occur when opening file" << endl;
+       exit(1);
     }
 
     string buf;

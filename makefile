@@ -9,12 +9,12 @@ ARFLAGS = rcv
 DBGFLAGS = -g -D_DEBUG_ON_
 OPTFLAGS = -O3
 
-all	: FMPartition
+all	: fm
 	@echo -n ""
 
 # optimized version
-FMPartition	: fm_partition.o main.o
-			$(CC) $(OPTFLAGS) fm_partition.o main.o -o FMPartition
+fm 		: fm_partition.o main.o
+			$(CC) $(OPTFLAGS) fm_partition.o main.o -o fm
 main.o 	   	: src/main.cpp
 			$(CC) $(CFLAGS) $< -o $@
 fm_partition.o	: src/fm_partition.cpp src/fm_partition.h
@@ -23,5 +23,5 @@ fm_partition.o	: src/fm_partition.cpp src/fm_partition.h
 
 # clean all the .o and executable files
 clean:
-		rm -rf *.o lib/*.a lib/*.o bin/* FMPartition
+		rm -rf *.o lib/*.a lib/*.o bin/* fm
 
