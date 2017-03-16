@@ -12,19 +12,6 @@ FMPartition::~FMPartition()
     }
 }
 
-inline void split(string& s, const string& delim, vector<string>& v)
-{
-    size_t pos = s.find_first_of(delim);
-    string token;
-    while (pos != string::npos) {
-        pos = s.find_first_of(delim);
-        token = s.substr(0, pos);
-        v.push_back(token);
-        //cout << token << " ";
-        s.erase(0, pos + 1);
-    }
-    //cout << endl;
-}
 
 void FMPartition::parse(string& filename)
 {
@@ -41,33 +28,33 @@ void FMPartition::parse(string& filename)
     getline(f, buf);
 
     bf = stod(buf);
-    //cout << bf << endl;
 
-    while (getline(f, buf)) {
-        vector<string> tokens;
-        split(buf, " ", tokens);
-        //cout << tokens.size() << endl;
-        int netidx = stoi(tokens[1].substr(1));
-        if (nMap.count(netidx) == 0) {
-            Net *net = new Net(netidx);
-
-            for (int i = 2; i < tokens.size() - 1; ++i) {
-                int cidx = stoi(tokens[i].substr(1));
-                if (cMap.count(cidx) == 0) {
-                    Cell *cell = new Cell(1, 1, cidx);
-                    cMap[cidx] = Cells.size();
-                    Cells.push_back(cell);
-                    cell->netlist.push_back(netidx);
+    while (f >> buf) {
+        if (buf == "NET") {
+            f >> buf;
+            int netidx = stoi(buf.substr(1));
+            if (nMap.count(netidx) == 0) {
+                Net* net = new Net(netidx);
+                while (f >> buf) {
+                    if (buf == ";") { break; }
+                    int cidx = stoi(buf.substr(1));
+                    if (cMap.count(cidx) == 0) {
+                        Cell* cell = new Cell(1, 1, cidx);
+                        cMap[cidx] = Cells.size();
+                        Cells.push_back(cell);
+                        cell->netlist.push_back(netidx);
+                    }
+                    else {
+                        Cells[cMap[cidx]]->netlist.push_back(netidx);
+                    }
+                    net->clist.push_back(cidx);
                 }
-                else {
-                    Cells[cMap[cidx]]->netlist.push_back(netidx);
-                }
-                net->clist.push_back(cidx);
+                nMap[netidx] = Nets.size();
+                Nets.push_back(net);
             }
-            nMap[netidx] = Nets.size();
-            Nets.push_back(net);
         }
     }
+
     nCell = Cells.size();
     nNet = Nets.size();
     upperbound = (1 + bf) / 2 * nCell;

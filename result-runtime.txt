@@ -1,0 +1,5 @@
+input_0.dat : 87m27.445s
+input_1.dat : 0m1.636s
+input_2.dat : 0m7.283s
+input_3.dat : 73m59.020s
+input_4.dat : 102m2.452s
