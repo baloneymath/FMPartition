@@ -86,6 +86,12 @@ class FMPartition {
         void    printPart0Cell();
         void    printPart1Cell();
         void    outputFile(string&);
+        // helper func
+        bool    balanceAfterMove(int, int); // check if is balanced after move
+        void    freeAllCell(); // unlock all cells
+        void    restorePart(vector<int>&);
+        void    restoreGain(vector<int>&);
+        void    moveAndUpdateCellGain(int); // updating cell gains
 
     private:
         int             nNet; // total # of nets
@@ -104,12 +110,6 @@ class FMPartition {
         int             part1Size;
         vector<vector<int>>  recordGain; // 0:cidx, 1:cgain, 2: balance
 
-        // helper func
-        bool    balanceAfterMove(int, int); // check if is balanced after move
-        void    freeAllCell(); // unlock all cells
-        void    restorePart(vector<int>&);
-        void    restoreGain(vector<int>&);
-        void    moveAndUpdateCellGain(int); // updating cell gains
 
 };
 

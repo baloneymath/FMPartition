@@ -1,6 +1,6 @@
 #include "fm_partition.h"
 
-
+vector<int> oriunlocked;
 /****************************************/
 FMPartition::~FMPartition()
 {
@@ -107,6 +107,7 @@ void FMPartition::initGain()
     for (int i = 0; i < nCell; ++i) {
         unlocked.push_back(Cells[i]->index);
     }
+    oriunlocked = unlocked;
     // calculate size of both part
     for (int i = 0; i < nCell; ++i) {
         Cell* tmp = Cells[i];
@@ -309,21 +310,18 @@ FMPartition::buildBucket()
 
 int FMPartition::findNextMoveCell()
 {
-    int target, front;
-    queue<int> preferlist;
+    int target = -1;
     for (auto it = GainList.rbegin(); it != GainList.rend(); ++it) {
-        for (int i = 0; i < (*it).second.size(); ++i) {
-            preferlist.push((*it).second[i]);
+        vector<int> tmp = (*it).second;
+        for (int i = 0; i < tmp.size(); ++i) {
+            int cidx = tmp[i];
+            if (balanceAfterMove(cidx, Cells[cMap[cidx]]->size)) {
+                target = cidx;
+                break;
+            }
         }
-    }
-    while (!preferlist.empty()) {
-        front = preferlist.front();
-        if (balanceAfterMove(front, Cells[cMap[front]]->size)) {
-            target = front;
+        if (target != -1) {
             break;
-        }
-        else {
-            preferlist.pop();
         }
     }
     #ifdef _DEBUG
@@ -338,11 +336,7 @@ void FMPartition::freeAllCell()
         Cells[i]->lock = false;
     }
     locked = vector<int>();
-    vector<int> newUnlock;
-    for (int i = 0; i < nCell; ++i) {
-        newUnlock.push_back(Cells[i]->index);
-    }
-    unlocked = newUnlock;
+    unlocked = oriunlocked;
 }
 void FMPartition::resetRecord()
 {
