@@ -28,14 +28,15 @@ int main(int argc, char* argv[])
         vector<list<int>> oriGList = FM.storeGainList();
         int orip0 = FM.getPart0Size();
         int orip1 = FM.getPart1Size();
-        vector<int> oriULK = FM.storeUnlocked();
+        FM.clearGainList();
         FM.oneRound();
         int step = FM.pickBetterResult();
-        FM.restoreALL(oriPart, oriGain, orip0, orip1, oriULK, oriGList);
+        FM.restoreALL(oriPart, oriGain, orip0, orip1, oriGList);
         if (step == -1) {
             break;
         }
         else {
+            FM.clearGainList();
             FM.moveToStep(step);
             FM.resetRecord();
             FM.resetGain();

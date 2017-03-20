@@ -68,7 +68,8 @@ class FMPartition {
         ~FMPartition();
         void    parse(string&); // load from file
         void    initGain(); // initialize the gain
-        void    buildGainList();
+        int     buildGainList();
+        void    clearGainList();
         void    computeGain();
         void    resetGain();
         int     findNextMoveCell(); // return the index of max gain cell
@@ -78,10 +79,9 @@ class FMPartition {
         int     countCutSize();
         vector<int> storePart(); // store the current state of FM
         vector<int> storeGain(); // store the current state of FM
-        vector<int> storeUnlocked();
         vector<list<int>> storeGainList();
         void    restoreALL(vector<int>&, vector<int>&,
-                        int, int, vector<int>&, vector<list<int>>&); // restore state
+                        int, int, vector<list<int>>&); // restore state
         void    resetRecord();
         int     getPart0Size();
         int     getPart1Size();
@@ -107,8 +107,7 @@ class FMPartition {
         double          upperbound; // the upperbound of balance
         double          lowerbound; // the lowerbound of balance
         int             MaxP;
-        vector<int>     locked;
-        vector<int>     unlocked;
+        int             MaxGain;
         //map<int, vector<int>> GainList;
         vector<list<int>> GainList;
         int             part0Size;

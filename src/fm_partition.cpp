@@ -1,6 +1,5 @@
 #include "fm_partition.h"
 
-vector<int> oriunlocked;
 /****************************************/
 FMPartition::~FMPartition()
 {
@@ -104,10 +103,6 @@ void FMPartition::initGain()
         }
     }
     computeGain();
-    for (int i = 0; i < nCell; ++i) {
-        unlocked.push_back(Cells[i]->index);
-    }
-    oriunlocked = unlocked;
     // calculate size of both part
     for (int i = 0; i < nCell; ++i) {
         Cell* tmp = Cells[i];
@@ -123,7 +118,8 @@ void FMPartition::initGain()
         MaxP = max((int)it->netlist.size(), MaxP);
     }
     GainList.resize(2 * MaxP + 1);
-    buildGainList();
+    MaxGain = buildGainList();
+
     #ifdef _DEBUG
         cout << "init gain....." << endl;
         printCurrentState();
@@ -139,36 +135,58 @@ void FMPartition::computeGain()
 {
     for (int i = 0; i < nNet; ++i) { // O(P)
         Net* nn = Nets[i];
-        vector<int> fromlist, tolist;
+        int nfrom = 0, nto = 0;
         int from = Cells[cMap[nn->clist[0]]]->part;
         for (int j = 0; j < nn->clist.size(); ++j) {
             if (Cells[cMap[nn->clist[j]]]->part == from) {
-                fromlist.push_back(nn->clist[j]);
+                ++nfrom;
             }
             else {
-                tolist.push_back(nn->clist[j]);
+                ++nto;
             }
         }
-        if (tolist.size() == 0) {
-            for (int j = 0; j < fromlist.size(); ++j) {
-                Cells[cMap[fromlist[j]]]->gain -= 1;
+        if (nto == 0) {
+            for (int j = 0; j < nn->clist.size(); ++j) {
+                Cells[cMap[nn->clist[j]]]->gain -= 1;
             }
         }
-        else if (tolist.size() == 1) {
-            Cells[cMap[tolist[0]]]->gain += 1;
+        else if (nto == 1) {
+            for (int j = 0; j < nn->clist.size(); ++j) {
+                Cell* c = Cells[cMap[nn->clist[j]]];
+                if (c->part == from ^ 1) {
+                    c->gain += 1;
+                    break;
+                }
+            }
         }
-        if (fromlist.size() == 1) {
-            Cells[cMap[fromlist[0]]]->gain += 1;
+        if (nfrom == 1) {
+            Cells[cMap[nn->clist[0]]]->gain += 1;
         }
 
     }
 }
 
-void FMPartition::buildGainList() {
+int FMPartition::buildGainList() {
     for (int i = 0; i < nCell; ++i) {
         Cell* tmp = Cells[i];
         auto where = GainList[tmp->gain + MaxP].begin();
         tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
+    }
+    int maxGain = 0;
+    for (int i = 2 * MaxP; i >= 0 ; --i) {
+        if (!GainList[i].empty()) {
+            maxGain = i - MaxP;
+            break;
+        }
+    }
+    return maxGain;
+}
+
+void FMPartition::clearGainList() {
+    for (int i = 2 * MaxP; i >= 0; --i) {
+        if (!GainList[i].empty()) {
+            GainList[i].clear();
+        }
     }
 }
 
@@ -181,34 +199,40 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     int from = cc->part;
     cc->lock = true;
     GainList[cc->gain + MaxP].erase(cc->place);
-    locked.push_back(cc->index);
-    vector<int>::iterator iter = std::find(unlocked.begin(), unlocked.end(), cc->index);
-    unlocked.erase(iter);
     for (int i = 0; i < cc->netlist.size(); ++i) {
         Net* net = Nets[nMap[cc->netlist[i]]];
         vector<int> fromlist, tolist;
+        int nfrom = 0, nto = 0;
         for (int j = 0; j < net->clist.size(); ++j) {
             Cell* target = Cells[cMap[net->clist[j]]];
             if (target->part == from) {
-                fromlist.push_back(target->index);
+                ++nfrom;
             }
             else {
-                tolist.push_back(target->index);
+                ++nto;
             }
         }
         // update the target cell first
-        if (tolist.size() == 0) {
-            for (int j = 0; j < fromlist.size(); ++j) {
-                Cell* tmp = Cells[cMap[fromlist[j]]];
+        if (nto == 0) {
+            for (int j = 0; j < net->clist.size(); ++j) {
+                Cell* tmp = Cells[cMap[net->clist[j]]];
                 if (!tmp->isFree()) continue;
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain += 1;
+                MaxGain = max(MaxGain, tmp->gain);
                 auto where = GainList[tmp->gain + MaxP].begin();
                 tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
             }
         }
-        else if (tolist.size() == 1) {
-            Cell* tmp = Cells[cMap[tolist[0]]];
+        else if (nto == 1) {
+            Cell* tmp;
+            for (int j = 0; j < net->clist.size(); ++j) {
+                Cell* target = Cells[cMap[net->clist[j]]];
+                if (target->part == from ^ 1) {
+                    tmp = target;
+                    break;
+                }
+            }
             if (tmp->isFree()) {
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain -= 1;
@@ -216,15 +240,13 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
                 tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
             }
         }
-
         // F(n) = F(n) - 1, T(n) = T(n) + 1
-        vector<int>::iterator it = std::find(fromlist.begin(), fromlist.end(), cc->index);
-        fromlist.erase(it);
-        tolist.push_back(cc->index);
+        --nfrom;
+        ++nto;
 
-        if (fromlist.size() == 0) {
-            for (int j = 0; j < tolist.size(); ++j) {
-                Cell* tmp = Cells[cMap[tolist[j]]];
+        if (nfrom == 0) {
+            for (int j = 0; j < net->clist.size(); ++j) {
+                Cell* tmp = Cells[cMap[net->clist[j]]];
                 if (!tmp->isFree()) continue;
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain -= 1;
@@ -232,11 +254,19 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
                 tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
             }
         }
-        else if (fromlist.size() == 1) {
-            Cell* tmp = Cells[cMap[fromlist[0]]];
+        else if (nfrom == 1) {
+            Cell* tmp;
+            for (int j = 0; j < net->clist.size(); ++j) {
+                Cell* target = Cells[cMap[net->clist[j]]];
+                if (target->part == from && target->index != cc->index) {
+                    tmp = target;
+                    break;
+                }
+            }
             if (tmp->isFree()) {
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain += 1;
+                MaxGain = max(MaxGain, tmp->gain);
                 auto where = GainList[tmp->gain + MaxP].begin();
                 tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
             }
@@ -266,16 +296,6 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
             cout << "gain: " << Cells[cMap[i]]->gain << ' ';
             cout << "lock: " << Cells[cMap[i]]->lock << endl;
         }
-        cout << "unlocked: ";
-        for (int i = 0; i < unlocked.size(); ++i) {
-            cout << unlocked[i] << ' ';
-        }
-        cout << endl;
-        cout << "locked: ";
-        for (int i = 0; i < locked.size(); ++i) {
-            cout << locked[i] << ' ';
-        }
-        cout << endl;
         cout << "part0Size: " << part0Size << endl;
         cout << "part1Size: " << part1Size << endl;
         cout << endl;
@@ -309,7 +329,7 @@ bool FMPartition::balanceAfterMove(int cidx, int size)
 int FMPartition::findNextMoveCell()
 {
     int target = -1;
-    for (int i = 2 * MaxP; i >=0; --i) {
+    for (int i = MaxGain + MaxP; i >=0; --i) {
         for (auto& j : GainList[i]) {
             int cidx = j;
             if (!Cells[cMap[cidx]]->isFree()) continue;
@@ -340,8 +360,6 @@ void FMPartition::freeAllCell()
     for (int i = 0; i < nCell; ++i) {
         Cells[i]->lock = false;
     }
-    locked = vector<int>();
-    unlocked = oriunlocked;
 }
 void FMPartition::resetRecord()
 {
@@ -411,17 +429,7 @@ int FMPartition::pickBetterResult()
 
 void FMPartition::oneRound()
 {
-    #ifdef _DEBUG
-        printCurrentState();
-    #endif
-    while (!unlocked.empty()) {
-        int next = findNextMoveCell();
-        moveAndUpdateCellGain(next);
-    }
-    freeAllCell();
-    resetGain();
-    computeGain();
-    buildGainList();
+    moveToStep(nCell - 1);
 }
 
 int FMPartition::countCutSize()
@@ -446,6 +454,7 @@ int FMPartition::countCutSize()
 
 void FMPartition::moveToStep(int step)
 {
+    MaxGain = buildGainList();
     for (int i = 0; i <= step; ++i) {
         int next = findNextMoveCell();
         moveAndUpdateCellGain(next);
@@ -453,7 +462,6 @@ void FMPartition::moveToStep(int step)
     freeAllCell();
     resetGain();
     computeGain();
-    buildGainList();
 }
 
 
@@ -475,10 +483,6 @@ vector<int> FMPartition::storeGain()
     return gains;
 }
 
-vector<int> FMPartition::storeUnlocked()
-{
-    return unlocked;
-}
 
 vector<list<int>> FMPartition::storeGainList()
 {
@@ -510,15 +514,13 @@ void FMPartition::restoreGain(vector<int>& gains)
 }
 
 void FMPartition::restoreALL(vector<int>& parts, vector<int>& gains,
-        int p0, int p1, vector<int>& ulk, vector<list<int>>& glist)
+        int p0, int p1, vector<list<int>>& glist)
 {
     restoreGain(gains);
     restorePart(parts);
     part0Size = p0;
     part1Size = p1;
-    unlocked = ulk;
     GainList = glist;
-    locked = vector<int>();
     freeAllCell();
     resetRecord();
 }
@@ -530,15 +532,6 @@ void FMPartition::printCurrentState()
         cout << "part: " << Cells[cMap[i]]->part << ' ';
         cout << "gain: " << Cells[cMap[i]]->gain << ' ';
         cout << "lock: " << Cells[cMap[i]]->lock << endl;
-    }
-    cout << "unlocked: ";
-    for (int i = 0; i < unlocked.size(); ++i) {
-        cout << unlocked[i] << ' ';
-    }
-    cout << endl;
-    cout << "locked: ";
-    for (int i = 0; i < locked.size(); ++i) {
-        cout << locked[i] << ' ';
     }
     cout << endl;
     cout << "part0Size: " << part0Size << endl;
