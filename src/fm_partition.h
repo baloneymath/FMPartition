@@ -102,13 +102,11 @@ class FMPartition {
         double          bf; // balance factor of the size of two partition
         vector<Cell*>   Cells;
         vector<Net*>    Nets;
-        map<int, int>   cMap; // first: cell index, second: index in vector
-        map<int, int>   nMap;
         double          upperbound; // the upperbound of balance
         double          lowerbound; // the lowerbound of balance
         int             MaxP;
         int             MaxGain;
-        //map<int, vector<int>> GainList;
+
         vector<list<int>> GainList;
         int             part0Size;
         int             part1Size;

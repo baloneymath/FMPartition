@@ -32,44 +32,50 @@ void FMPartition::parse(string& filename)
         if (buf == "NET") {
             f >> buf;
             ++netidx;
-            if (nMap.count(netidx) == 0) {
-                Net* net = new Net(netidx);
-                while (f >> buf) {
-                    if (buf == ";") { break; }
-                    int cidx = stoi(buf.substr(1));
-                    if (cMap.count(cidx) == 0) {
-                        Cell* cell = new Cell(1, 1, cidx);
-                        cMap[cidx] = Cells.size();
-                        Cells.push_back(cell);
-                        cell->netlist.push_back(netidx);
-                    }
-                    else {
-                        Cells[cMap[cidx]]->netlist.push_back(netidx);
-                    }
-                    net->clist.push_back(cidx);
-                }
-                nMap[netidx] = Nets.size();
-                Nets.push_back(net);
+            while (f >> buf) {
+                if (buf == ";") break;
+                nCell = max(nCell, stoi(buf.substr(1)));
             }
         }
     }
+    nNet = netidx;
+    netidx = 0;
+    f.close();
 
-    nCell = Cells.size();
-    nNet = Nets.size();
+    Cells.resize(nCell + 1);
+    Nets.resize(nNet + 1);
+    f.open(filename, ifstream::in);
+    if (!f.is_open()) {
+       cerr << "Error occur when opening file" << endl;
+       exit(1);
+    }
+    while (f >> buf) {
+        if (buf == "NET") {
+            f >> buf;
+            ++netidx;
+            Net* net = new Net(netidx);
+            while (f >> buf) {
+                if (buf == ";") break;
+                int cidx = stoi(buf.substr(1));
+                if (!Cells[cidx]) {
+                    Cell* cell = new Cell(1, 1, cidx);
+                    cell->netlist.push_back(netidx);
+                    Cells[cidx] = cell;
+                }
+                else {
+                    Cells[cidx]->netlist.push_back(netidx);
+                }
+                net->clist.push_back(cidx);
+            }
+            Nets[netidx] = net;
+        }
+    }
+    f.close();
     upperbound = (1 + bf) / 2 * nCell;
     lowerbound = (1 - bf) / 2 * nCell;
     #ifdef _DEBUG
         cout << "Parse....." << endl;
-        for (int i = 0 ; i < nCell; ++i) {
-            Cell* c = Cells[i];
-            cout << "Cell : " << c->index;
-            cout << " netlist: ";
-            for (int j = 0; j < c->netlist.size(); ++j) {
-                cout << c->netlist[j] << ' ';
-            }
-            cout << endl;
-        }
-        for (int i = 0; i < nNet; ++i) {
+        for (int i = 1; i <= nNet; ++i) {
             Net* n = Nets[i];
             cout << "Net index: " << n->index;
             cout << " clist: ";
@@ -89,7 +95,7 @@ void FMPartition::initGain()
 
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, nCell - 1);
+    uniform_int_distribution<> dis(1, nCell);
 
     map<int, int> tmp;
     for (int i = 0; i < another; ++i) {
@@ -104,7 +110,7 @@ void FMPartition::initGain()
     }
     computeGain();
     // calculate size of both part
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* tmp = Cells[i];
         if (tmp->part == 0) {
             part0Size += tmp->size;
@@ -114,8 +120,8 @@ void FMPartition::initGain()
         }
     }
     MaxP = 0;
-    for(auto it : Cells) {
-        MaxP = max((int)it->netlist.size(), MaxP);
+    for(auto it = ++Cells.begin(); it != Cells.end(); ++it) {
+        MaxP = max((int)(*it)->netlist.size(), MaxP);
     }
     GainList.resize(2 * MaxP + 1);
     MaxGain = buildGainList();
@@ -127,18 +133,18 @@ void FMPartition::initGain()
 }
 void FMPartition::resetGain()
 {
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cells[i]->gain = 0;
     }
 }
 void FMPartition::computeGain()
 {
-    for (int i = 0; i < nNet; ++i) { // O(P)
+    for (int i = 1; i <= nNet; ++i) { // O(P)
         Net* nn = Nets[i];
         int nfrom = 0, nto = 0;
-        int from = Cells[cMap[nn->clist[0]]]->part;
+        int from = Cells[nn->clist[0]]->part;
         for (int j = 0; j < nn->clist.size(); ++j) {
-            if (Cells[cMap[nn->clist[j]]]->part == from) {
+            if (Cells[nn->clist[j]]->part == from) {
                 ++nfrom;
             }
             else {
@@ -147,12 +153,12 @@ void FMPartition::computeGain()
         }
         if (nto == 0) {
             for (int j = 0; j < nn->clist.size(); ++j) {
-                Cells[cMap[nn->clist[j]]]->gain -= 1;
+                Cells[nn->clist[j]]->gain -= 1;
             }
         }
         else if (nto == 1) {
             for (int j = 0; j < nn->clist.size(); ++j) {
-                Cell* c = Cells[cMap[nn->clist[j]]];
+                Cell* c = Cells[nn->clist[j]];
                 if (c->part == from ^ 1) {
                     c->gain += 1;
                     break;
@@ -160,14 +166,14 @@ void FMPartition::computeGain()
             }
         }
         if (nfrom == 1) {
-            Cells[cMap[nn->clist[0]]]->gain += 1;
+            Cells[nn->clist[0]]->gain += 1;
         }
 
     }
 }
 
 int FMPartition::buildGainList() {
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* tmp = Cells[i];
         auto where = GainList[tmp->gain + MaxP].begin();
         tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
@@ -195,16 +201,16 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     if (cidx == -1) {
         return;
     }
-    Cell* cc = Cells[cMap[cidx]];
+    Cell* cc = Cells[cidx];
     int from = cc->part;
     cc->lock = true;
     GainList[cc->gain + MaxP].erase(cc->place);
     for (int i = 0; i < cc->netlist.size(); ++i) {
-        Net* net = Nets[nMap[cc->netlist[i]]];
+        Net* net = Nets[cc->netlist[i]];
         vector<int> fromlist, tolist;
         int nfrom = 0, nto = 0;
         for (int j = 0; j < net->clist.size(); ++j) {
-            Cell* target = Cells[cMap[net->clist[j]]];
+            Cell* target = Cells[net->clist[j]];
             if (target->part == from) {
                 ++nfrom;
             }
@@ -215,7 +221,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
         // update the target cell first
         if (nto == 0) {
             for (int j = 0; j < net->clist.size(); ++j) {
-                Cell* tmp = Cells[cMap[net->clist[j]]];
+                Cell* tmp = Cells[net->clist[j]];
                 if (!tmp->isFree()) continue;
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain += 1;
@@ -227,7 +233,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
         else if (nto == 1) {
             Cell* tmp;
             for (int j = 0; j < net->clist.size(); ++j) {
-                Cell* target = Cells[cMap[net->clist[j]]];
+                Cell* target = Cells[net->clist[j]];
                 if (target->part == from ^ 1) {
                     tmp = target;
                     break;
@@ -246,7 +252,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
 
         if (nfrom == 0) {
             for (int j = 0; j < net->clist.size(); ++j) {
-                Cell* tmp = Cells[cMap[net->clist[j]]];
+                Cell* tmp = Cells[net->clist[j]];
                 if (!tmp->isFree()) continue;
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain -= 1;
@@ -257,7 +263,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
         else if (nfrom == 1) {
             Cell* tmp;
             for (int j = 0; j < net->clist.size(); ++j) {
-                Cell* target = Cells[cMap[net->clist[j]]];
+                Cell* target = Cells[net->clist[j]];
                 if (target->part == from && target->index != cc->index) {
                     tmp = target;
                     break;
@@ -291,10 +297,10 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     #ifdef _DEBUG
         cout << "move and update cell gains....." << endl;
         for (int i = 1; i <= nCell; ++i) {
-            cout << "cell: " << Cells[cMap[i]]->index << ' ';
-            cout << "part: " << Cells[cMap[i]]->part << ' ';
-            cout << "gain: " << Cells[cMap[i]]->gain << ' ';
-            cout << "lock: " << Cells[cMap[i]]->lock << endl;
+            cout << "cell: " << Cells[i]->index << ' ';
+            cout << "part: " << Cells[i]->part << ' ';
+            cout << "gain: " << Cells[i]->gain << ' ';
+            cout << "lock: " << Cells[i]->lock << endl;
         }
         cout << "part0Size: " << part0Size << endl;
         cout << "part1Size: " << part1Size << endl;
@@ -305,7 +311,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
 
 bool FMPartition::balanceAfterMove(int cidx, int size)
 {
-    Cell* c = Cells[cMap[cidx]];
+    Cell* c = Cells[cidx];
     int from = c->part;
     int fromSize = 0, toSize = 0;
     if (from == 0) {
@@ -332,8 +338,8 @@ int FMPartition::findNextMoveCell()
     for (int i = MaxGain + MaxP; i >=0; --i) {
         for (auto& j : GainList[i]) {
             int cidx = j;
-            if (!Cells[cMap[cidx]]->isFree()) continue;
-            if (balanceAfterMove(cidx, Cells[cMap[cidx]]->size)) {
+            if (!Cells[cidx]->isFree()) continue;
+            if (balanceAfterMove(cidx, Cells[cidx]->size)) {
                 target = cidx;
                 break;
             }
@@ -357,7 +363,7 @@ int FMPartition::findNextMoveCell()
 
 void FMPartition::freeAllCell()
 {
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cells[i]->lock = false;
     }
 }
@@ -379,7 +385,7 @@ int FMPartition::pickBetterResult()
             Max = accumGain[i];
         }
     }
-    cerr << "Gain: " << Max << ' ';
+    //cerr << "Gain: " << Max << ' ';
     if (Max <= 0) {
         #ifdef _DEBUG
             cout << "No more better move, Stop iteration!!!!!!" << endl;
@@ -403,7 +409,7 @@ int FMPartition::pickBetterResult()
             targetStep = maxResultStep[i];
         }
     }
-    cerr << "targetstep: " << targetStep << ' ';
+    //cerr << "targetstep: " << targetStep << ' ';
     #ifdef _DEBUG
         cout << endl;
         cout << "move cell: ";
@@ -427,20 +433,16 @@ int FMPartition::pickBetterResult()
     return targetStep;
 }
 
-void FMPartition::oneRound()
-{
-    moveToStep(nCell - 1);
-}
 
 int FMPartition::countCutSize()
 {
     int cutsize = 0;
-    for (int i = 0; i < nNet; ++i) {
+    for (int i = 1; i <= nNet; ++i) {
         Net* n = Nets[i];
-        int from = Cells[cMap[n->clist[0]]]->part;
+        int from = Cells[n->clist[0]]->part;
         bool cutted = false;
         for (int j = 1; j < n->clist.size(); ++j) {
-            Cell* c = Cells[cMap[n->clist[j]]];
+            Cell* c = Cells[n->clist[j]];
             if (from != c->part) {
                 cutted = true;
             }
@@ -450,6 +452,11 @@ int FMPartition::countCutSize()
         }
     }
     return cutsize;
+}
+
+void FMPartition::oneRound()
+{
+    moveToStep(nCell - 1);
 }
 
 void FMPartition::moveToStep(int step)
@@ -468,7 +475,7 @@ void FMPartition::moveToStep(int step)
 vector<int> FMPartition::storePart()
 {
     vector<int> parts;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         parts.push_back(Cells[i]->part);
     }
     return parts;
@@ -477,7 +484,7 @@ vector<int> FMPartition::storePart()
 vector<int> FMPartition::storeGain()
 {
     vector<int> gains;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         gains.push_back(Cells[i]->gain);
     }
     return gains;
@@ -501,15 +508,15 @@ int FMPartition::getPart1Size()
 
 void FMPartition::restorePart(vector<int>& parts)
 {
-    for (int i = 0; i < nCell; ++i) {
-        Cells[i]->part = parts[i];
+    for (int i = 1; i <= nCell; ++i) {
+        Cells[i]->part = parts[i - 1];
     }
 }
 
 void FMPartition::restoreGain(vector<int>& gains)
 {
-    for (int i = 0; i < nCell; ++i) {
-        Cells[i]->gain = gains[i];
+    for (int i = 1; i <= nCell; ++i) {
+        Cells[i]->gain = gains[i - 1];
     }
 }
 
@@ -528,10 +535,10 @@ void FMPartition::restoreALL(vector<int>& parts, vector<int>& gains,
 void FMPartition::printCurrentState()
 {
     for (int i = 1; i <= nCell; ++i) {
-        cout << "cell: " << Cells[cMap[i]]->index << ' ';
-        cout << "part: " << Cells[cMap[i]]->part << ' ';
-        cout << "gain: " << Cells[cMap[i]]->gain << ' ';
-        cout << "lock: " << Cells[cMap[i]]->lock << endl;
+        cout << "cell: " << Cells[i]->index << ' ';
+        cout << "part: " << Cells[i]->part << ' ';
+        cout << "gain: " << Cells[i]->gain << ' ';
+        cout << "lock: " << Cells[i]->lock << endl;
     }
     cout << endl;
     cout << "part0Size: " << part0Size << endl;
@@ -541,13 +548,12 @@ void FMPartition::printCurrentState()
 void FMPartition::printPart0Cell()
 {
     vector<int> p0;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
         if (c->part == 0) {
             p0.push_back(c->index);
         }
     }
-    std::sort(p0.begin(), p0.end());
     for (int i = 0; i < p0.size(); ++i) {
         cout << 'c' << p0[i] << ' ';
     }
@@ -557,13 +563,12 @@ void FMPartition::printPart0Cell()
 void FMPartition::printPart1Cell()
 {
     vector<int> p1;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
         if (c->part == 1) {
             p1.push_back(c->index);
         }
     }
-    std::sort(p1.begin(), p1.end());
     for (int i = 0; i < p1.size(); ++i) {
         cout << 'c' << p1[i] << ' ';
     }
@@ -580,25 +585,23 @@ void FMPartition::outputFile(string& filename)
     ofile << "Cutsize = " << countCutSize() << endl;
     ofile << "G1 " << part0Size << endl;
     vector<int> p0, p1;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
         if (c->part == 0) {
             p0.push_back(c->index);
         }
     }
-    std::sort(p0.begin(), p0.end());
     for (int i = 0; i < p0.size(); ++i) {
         ofile << 'c' << p0[i] << ' ';
     }
     ofile << ';' << endl;
     ofile << "G2 " << part1Size << endl;
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
         if (c->part == 1) {
             p1.push_back(c->index);
         }
     }
-    std::sort(p1.begin(), p1.end());
     for (int i = 0; i < p1.size(); ++i) {
         ofile << 'c' << p1[i] << ' ';
     }
