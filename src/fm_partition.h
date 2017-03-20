@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <random>
 #include <algorithm>
+#include <cassert>
 //#include <boost/algorithm/string.hpp>a
 
 //#define _DEBUG
@@ -25,7 +26,7 @@ class Net;
 
 class Cell {
     public:
-        Cell() {lock = false;}
+        //Cell() {lock = false;}
         Cell(int p, int s, int idx)
         {
             part = p;
@@ -43,6 +44,7 @@ class Cell {
         int         part; // which partition that Cell i is in
         int         gain; // the gain of Cell
         bool        lock; // if Cell i is locked
+        list<int>::iterator       place; // place in the GainList
 };
 
 class Net {
@@ -66,9 +68,9 @@ class FMPartition {
         ~FMPartition();
         void    parse(string&); // load from file
         void    initGain(); // initialize the gain
+        void    buildGainList();
         void    computeGain();
         void    resetGain();
-        void    buildBucket(); // construct bucket gain list for two part
         int     findNextMoveCell(); // return the index of max gain cell
         int     pickBetterResult();
         void    moveToStep(int); // moveAndUpdateCellGain() till a step
@@ -77,8 +79,9 @@ class FMPartition {
         vector<int> storePart(); // store the current state of FM
         vector<int> storeGain(); // store the current state of FM
         vector<int> storeUnlocked();
+        vector<list<int>> storeGainList();
         void    restoreALL(vector<int>&, vector<int>&,
-                        int, int, vector<int>&); // restore state
+                        int, int, vector<int>&, vector<list<int>>&); // restore state
         void    resetRecord();
         int     getPart0Size();
         int     getPart1Size();
@@ -103,9 +106,11 @@ class FMPartition {
         map<int, int>   nMap;
         double          upperbound; // the upperbound of balance
         double          lowerbound; // the lowerbound of balance
+        int             MaxP;
         vector<int>     locked;
         vector<int>     unlocked;
-        map<int, vector<int>> GainList;
+        //map<int, vector<int>> GainList;
+        vector<list<int>> GainList;
         int             part0Size;
         int             part1Size;
         vector<vector<int>>  recordGain; // 0:cidx, 1:cgain, 2: balance
