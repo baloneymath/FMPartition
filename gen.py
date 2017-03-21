@@ -13,7 +13,7 @@ f = open(ofile, 'w')
 
 f.write(bf + '\n')
 for i in range(nsize):
-    Cs = rd.randint(1, int(csize / 2))
+    Cs = rd.randint(1, int(200))
     f.write('NET n{} '.format(i + 1))
     cc = rd.sample(range(crange[0], crange[1]), Cs)
     for j in range(len(cc)):

@@ -3,10 +3,10 @@
 /****************************************/
 FMPartition::~FMPartition()
 {
-    for (int i = 0; i < nCell; ++i) {
+    for (int i = 1; i <= nCell; ++i) {
         delete Cells[i];
     }
-    for (int i = 0; i < nNet; ++i) {
+    for (int i = 1; i <= nNet; ++i) {
         delete Nets[i];
     }
 }
@@ -43,6 +43,10 @@ void FMPartition::parse(string& filename)
     f.close();
 
     Cells.resize(nCell + 1);
+    for (int i = 0; i <= nCell; ++i) {
+        Cell* cell = new Cell(1, 1, i);
+        Cells[i] = cell;
+    }
     Nets.resize(nNet + 1);
     f.open(filename, ifstream::in);
     if (!f.is_open()) {
@@ -57,14 +61,7 @@ void FMPartition::parse(string& filename)
             while (f >> buf) {
                 if (buf == ";") break;
                 int cidx = stoi(buf.substr(1));
-                if (!Cells[cidx]) {
-                    Cell* cell = new Cell(1, 1, cidx);
-                    cell->netlist.push_back(netidx);
-                    Cells[cidx] = cell;
-                }
-                else {
-                    Cells[cidx]->netlist.push_back(netidx);
-                }
+                Cells[cidx]->netlist.push_back(netidx);
                 net->clist.push_back(cidx);
             }
             Nets[netidx] = net;
@@ -91,8 +88,13 @@ void FMPartition::parse(string& filename)
 void FMPartition::initGain()
 {
     // randomly put n/2 different cells to another part
-    int another = nCell / 2;
-
+    int another = 0;
+    for (int i = 1; i <= nCell; ++i) {
+        if (Cells[i]->netlist.size() != 0) {
+            ++another;
+        }
+    }
+    another /= 2;
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(1, nCell);
@@ -100,6 +102,10 @@ void FMPartition::initGain()
     map<int, int> tmp;
     for (int i = 0; i < another; ++i) {
         int r = dis(gen);
+        if (Cells[r]->netlist.size() == 0) {
+            --i;
+            continue;
+        }
         if (tmp.count(r) == 0) {
             tmp[r] = 1;
             Cells[r]->part ^= 1;
@@ -112,6 +118,7 @@ void FMPartition::initGain()
     // calculate size of both part
     for (int i = 1; i <= nCell; ++i) {
         Cell* tmp = Cells[i];
+        if (tmp->netlist.size() == 0) continue;
         if (tmp->part == 0) {
             part0Size += tmp->size;
         }
@@ -175,6 +182,7 @@ void FMPartition::computeGain()
 int FMPartition::buildGainList() {
     for (int i = 1; i <= nCell; ++i) {
         Cell* tmp = Cells[i];
+        if (tmp->netlist.size() == 0) continue;
         auto where = GainList[tmp->gain + MaxP].begin();
         tmp->place = GainList[tmp->gain + MaxP].insert(where, tmp->index);
     }
@@ -469,7 +477,7 @@ void FMPartition::oneRound()
 
 void FMPartition::moveToStep(int& step)
 {
-    for (int i = nCell - 1; i > step; --i) {
+    for (int i = recordGain.size() - 1; i > step; --i) {
         Cell* c = Cells[recordGain[i][0]];
         int from = c->part;
         c->part ^= 1;
@@ -510,6 +518,7 @@ void FMPartition::outputFile(string& filename)
     vector<int> p0, p1;
     for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
+        if (c->netlist.size() == 0) continue;
         if (c->part == 0) {
             p0.push_back(c->index);
         }
@@ -521,6 +530,7 @@ void FMPartition::outputFile(string& filename)
     ofile << "G2 " << part1Size << endl;
     for (int i = 1; i <= nCell; ++i) {
         Cell* c = Cells[i];
+        if (c->netlist.size() == 0) continue;
         if (c->part == 1) {
             p1.push_back(c->index);
         }
