@@ -445,6 +445,7 @@ int FMPartition::countCutSize()
             Cell* c = Cells[n->clist[j]];
             if (from != c->part) {
                 cutted = true;
+                break;
             }
         }
         if (cutted == true) {
@@ -456,13 +457,8 @@ int FMPartition::countCutSize()
 
 void FMPartition::oneRound()
 {
-    moveToStep(nCell - 1);
-}
-
-void FMPartition::moveToStep(int step)
-{
     MaxGain = buildGainList();
-    for (int i = 0; i <= step; ++i) {
+    for (int i = 0; i < nCell; ++i) {
         int next = findNextMoveCell();
         moveAndUpdateCellGain(next);
     }
@@ -471,65 +467,21 @@ void FMPartition::moveToStep(int step)
     computeGain();
 }
 
-
-vector<int> FMPartition::storePart()
+void FMPartition::moveToStep(int& step)
 {
-    vector<int> parts;
-    for (int i = 1; i <= nCell; ++i) {
-        parts.push_back(Cells[i]->part);
+    for (int i = nCell - 1; i > step; --i) {
+        Cell* c = Cells[recordGain[i][0]];
+        int from = c->part;
+        c->part ^= 1;
+        if (from == 0) {
+            --part0Size;
+            ++part1Size;
+        }
+        else {
+            ++part0Size;
+            --part1Size;
+        }
     }
-    return parts;
-}
-
-vector<int> FMPartition::storeGain()
-{
-    vector<int> gains;
-    for (int i = 1; i <= nCell; ++i) {
-        gains.push_back(Cells[i]->gain);
-    }
-    return gains;
-}
-
-
-vector<list<int>> FMPartition::storeGainList()
-{
-    return GainList;
-}
-
-int FMPartition::getPart0Size()
-{
-    return part0Size;
-}
-
-int FMPartition::getPart1Size()
-{
-    return part1Size;
-}
-
-void FMPartition::restorePart(vector<int>& parts)
-{
-    for (int i = 1; i <= nCell; ++i) {
-        Cells[i]->part = parts[i - 1];
-    }
-}
-
-void FMPartition::restoreGain(vector<int>& gains)
-{
-    for (int i = 1; i <= nCell; ++i) {
-        Cells[i]->gain = gains[i - 1];
-    }
-}
-
-void FMPartition::restoreALL(vector<int>& parts, vector<int>& gains,
-        int p0, int p1, vector<list<int>>& glist)
-{
-    restoreGain(gains);
-    restorePart(parts);
-    part0Size = p0;
-    part1Size = p1;
-    GainList = glist;
-    freeAllCell();
-    resetRecord();
 }
 
 void FMPartition::printCurrentState()
@@ -545,35 +497,6 @@ void FMPartition::printCurrentState()
     cout << "part1Size: " << part1Size << endl << endl;
 }
 
-void FMPartition::printPart0Cell()
-{
-    vector<int> p0;
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[i];
-        if (c->part == 0) {
-            p0.push_back(c->index);
-        }
-    }
-    for (int i = 0; i < p0.size(); ++i) {
-        cout << 'c' << p0[i] << ' ';
-    }
-    cout << ';' << endl;
-}
-
-void FMPartition::printPart1Cell()
-{
-    vector<int> p1;
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[i];
-        if (c->part == 1) {
-            p1.push_back(c->index);
-        }
-    }
-    for (int i = 0; i < p1.size(); ++i) {
-        cout << 'c' << p1[i] << ' ';
-    }
-    cout << ';' << endl;
-}
 
 void FMPartition::outputFile(string& filename)
 {

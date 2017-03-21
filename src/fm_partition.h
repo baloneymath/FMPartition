@@ -74,26 +74,15 @@ class FMPartition {
         void    resetGain();
         int     findNextMoveCell(); // return the index of max gain cell
         int     pickBetterResult();
-        void    moveToStep(int); // moveAndUpdateCellGain() till a step
+        void    moveToStep(int&); // moveAndUpdateCellGain() till a step
         void    oneRound(); // start the process 1 round
         int     countCutSize();
-        vector<int> storePart(); // store the current state of FM
-        vector<int> storeGain(); // store the current state of FM
-        vector<list<int>> storeGainList();
-        void    restoreALL(vector<int>&, vector<int>&,
-                        int, int, vector<list<int>>&); // restore state
         void    resetRecord();
-        int     getPart0Size();
-        int     getPart1Size();
         void    printCurrentState();
-        void    printPart0Cell();
-        void    printPart1Cell();
         void    outputFile(string&);
         // helper func
         bool    balanceAfterMove(int, int); // check if is balanced after move
         void    freeAllCell(); // unlock all cells
-        void    restorePart(vector<int>&);
-        void    restoreGain(vector<int>&);
         void    moveAndUpdateCellGain(int); // updating cell gains
 
     private:

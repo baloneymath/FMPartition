@@ -23,20 +23,13 @@ int main(int argc, char* argv[])
     int counter = 0;
     while (1) {
         ++counter;
-        vector<int> oriPart = FM.storePart();
-        vector<int> oriGain = FM.storeGain();
-        vector<list<int>> oriGList = FM.storeGainList();
-        int orip0 = FM.getPart0Size();
-        int orip1 = FM.getPart1Size();
         FM.clearGainList();
         FM.oneRound();
         int step = FM.pickBetterResult();
-        FM.restoreALL(oriPart, oriGain, orip0, orip1, oriGList);
         if (step == -1) {
             break;
         }
         else {
-            FM.clearGainList();
             FM.moveToStep(step);
             FM.resetRecord();
             FM.resetGain();
@@ -47,8 +40,6 @@ int main(int argc, char* argv[])
             #endif
         }
     }
-    int p0size = FM.getPart0Size();
-    int p1size = FM.getPart1Size();
     cout << "Cutsize = " << FM.countCutSize() << endl;
     if (argc == 3) {
         string ofile = argv[2];
