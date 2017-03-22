@@ -269,7 +269,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
             }
         }
         else if (nfrom == 1) {
-            Cell* tmp;
+            Cell* tmp = 0; 
             for (int j = 0; j < net->clist.size(); ++j) {
                 Cell* target = Cells[net->clist[j]];
                 if (target->part == from && target->index != cc->index) {
@@ -277,7 +277,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
                     break;
                 }
             }
-            if (tmp->isFree()) {
+            if (tmp != 0 && tmp->isFree()) {
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain += 1;
                 MaxGain = max(MaxGain, tmp->gain);
