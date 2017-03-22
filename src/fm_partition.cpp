@@ -68,6 +68,10 @@ void FMPartition::parse(string& filename)
         }
     }
     f.close();
+    for (int i = 1; i <= nCell; ++i) {
+        Cell* c = Cells[i];
+        std::unique(c->netlist.begin(), c->netlist.end());
+    }
     upperbound = (1 + bf) / 2 * nCell;
     lowerbound = (1 - bf) / 2 * nCell;
     #ifdef _DEBUG
@@ -148,6 +152,7 @@ void FMPartition::computeGain()
 {
     for (int i = 1; i <= nNet; ++i) { // O(P)
         Net* nn = Nets[i];
+        if (nn->clist.size() <= 1) continue;
         int nfrom = 0, nto = 0;
         int from = Cells[nn->clist[0]]->part;
         for (int j = 0; j < nn->clist.size(); ++j) {
@@ -215,6 +220,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     GainList[cc->gain + MaxP].erase(cc->place);
     for (int i = 0; i < cc->netlist.size(); ++i) {
         Net* net = Nets[cc->netlist[i]];
+        if (net->clist.size() <= 1) continue;
         vector<int> fromlist, tolist;
         int nfrom = 0, nto = 0;
         for (int j = 0; j < net->clist.size(); ++j) {
@@ -239,7 +245,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
             }
         }
         else if (nto == 1) {
-            Cell* tmp;
+            Cell* tmp = 0;
             for (int j = 0; j < net->clist.size(); ++j) {
                 Cell* target = Cells[net->clist[j]];
                 if (target->part == from ^ 1) {
@@ -247,7 +253,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
                     break;
                 }
             }
-            if (tmp->isFree()) {
+            if (tmp != 0 && tmp->isFree()) {
                 GainList[tmp->gain + MaxP].erase(tmp->place);
                 tmp->gain -= 1;
                 auto where = GainList[tmp->gain + MaxP].begin();
@@ -447,6 +453,7 @@ int FMPartition::countCutSize()
     int cutsize = 0;
     for (int i = 1; i <= nNet; ++i) {
         Net* n = Nets[i];
+        if (n->clist.size() <= 1) continue;
         int from = Cells[n->clist[0]]->part;
         bool cutted = false;
         for (int j = 1; j < n->clist.size(); ++j) {
