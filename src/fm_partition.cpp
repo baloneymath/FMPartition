@@ -118,6 +118,7 @@ void FMPartition::initGain()
             --i;
         }
     }
+    correctNetP0P1();
     computeGain();
     // calculate size of both part
     for (int i = 1; i <= nCell; ++i) {
@@ -142,6 +143,21 @@ void FMPartition::initGain()
         printCurrentState();
     #endif
 }
+void FMPartition::correctNetP0P1()
+{
+    for (int i = 1; i <= nNet; ++i) {
+        Net* nn = Nets[i];
+        nn->nP0 = nn->nP1 = 0;
+        if (nn->clist.size() <= 1) continue;
+        for (int j = 0; j < nn->clist.size(); ++j) {
+            if (Cells[nn->clist[j]]->part == 0) {
+                ++nn->nP0;
+            }
+        }
+        nn->nP1 = nn->clist.size() - nn->nP0;
+    }
+}
+
 void FMPartition::resetGain()
 {
     for (int i = 1; i <= nCell; ++i) {
@@ -221,17 +237,18 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     for (int i = 0; i < cc->netlist.size(); ++i) {
         Net* net = Nets[cc->netlist[i]];
         if (net->clist.size() <= 1) continue;
-        vector<int> fromlist, tolist;
-        int nfrom = 0, nto = 0;
-        for (int j = 0; j < net->clist.size(); ++j) {
-            Cell* target = Cells[net->clist[j]];
-            if (target->part == from) {
-                ++nfrom;
-            }
-            else {
-                ++nto;
-            }
-        }
+     // int nfrom = 0, nto = 0;
+     // for (int j = 0; j < net->clist.size(); ++j) {
+     //     Cell* target = Cells[net->clist[j]];
+     //     if (target->part == from) {
+     //         ++nfrom;
+     //     }
+     //     else {
+     //         ++nto;
+     //     }
+     // }
+        int nfrom = (from == 0)? net->nP0 : net->nP1;
+        int nto = net->clist.size() - nfrom;
         // update the target cell first
         if (nto == 0) {
             for (int j = 0; j < net->clist.size(); ++j) {
@@ -263,6 +280,14 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
         // F(n) = F(n) - 1, T(n) = T(n) + 1
         --nfrom;
         ++nto;
+        if (from == 0) {
+            --net->nP0;
+            ++net->nP1;
+        }
+        else {
+            ++net->nP0;
+            --net->nP1;
+        }
 
         if (nfrom == 0) {
             for (int j = 0; j < net->clist.size(); ++j) {
@@ -497,6 +522,7 @@ void FMPartition::moveToStep(int& step)
             --part1Size;
         }
     }
+    correctNetP0P1();
 }
 
 void FMPartition::printCurrentState()

@@ -50,11 +50,17 @@ class Cell {
 class Net {
     public:
         Net() {}
-        Net(int n) {index = n;}
+        Net(int n) {
+            index = n;
+            nP0 = 0;
+            nP1 = 0;
+        }
         ~Net() {}
 
         vector<int> clist; // cell list on the net
         int         index; // index of the net
+        int         nP0;
+        int         nP1;
 };
 
 class FMPartition {
@@ -84,6 +90,7 @@ class FMPartition {
         bool    balanceAfterMove(int, int); // check if is balanced after move
         void    freeAllCell(); // unlock all cells
         void    moveAndUpdateCellGain(int); // updating cell gains
+        void    correctNetP0P1();
 
     private:
         int             nNet; // total # of nets
