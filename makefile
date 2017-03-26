@@ -23,5 +23,5 @@ fm_partition.o	: src/fm_partition.cpp src/fm_partition.h
 
 # clean all the .o and executable files
 clean:
-		rm -rf *.o lib/*.a lib/*.o bin/* fm
+		rm -rf *.o *.gprof gmon.out lib/*.a lib/*.o bin/* fm
 

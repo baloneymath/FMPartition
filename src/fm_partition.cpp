@@ -169,16 +169,10 @@ void FMPartition::computeGain()
     for (int i = 1; i <= nNet; ++i) { // O(P)
         Net* nn = Nets[i];
         if (nn->clist.size() <= 1) continue;
-        int nfrom = 0, nto = 0;
         int from = Cells[nn->clist[0]]->part;
-        for (int j = 0; j < nn->clist.size(); ++j) {
-            if (Cells[nn->clist[j]]->part == from) {
-                ++nfrom;
-            }
-            else {
-                ++nto;
-            }
-        }
+
+        int nfrom = (from == 0)? nn->nP0 : nn->nP1;
+        int nto = nn->clist.size() - nfrom;
         if (nto == 0) {
             for (int j = 0; j < nn->clist.size(); ++j) {
                 Cells[nn->clist[j]]->gain -= 1;
@@ -237,16 +231,7 @@ void FMPartition::moveAndUpdateCellGain(int cidx)
     for (int i = 0; i < cc->netlist.size(); ++i) {
         Net* net = Nets[cc->netlist[i]];
         if (net->clist.size() <= 1) continue;
-     // int nfrom = 0, nto = 0;
-     // for (int j = 0; j < net->clist.size(); ++j) {
-     //     Cell* target = Cells[net->clist[j]];
-     //     if (target->part == from) {
-     //         ++nfrom;
-     //     }
-     //     else {
-     //         ++nto;
-     //     }
-     // }
+
         int nfrom = (from == 0)? net->nP0 : net->nP1;
         int nto = net->clist.size() - nfrom;
         // update the target cell first
