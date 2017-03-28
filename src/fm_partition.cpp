@@ -58,20 +58,20 @@ void FMPartition::parse(string& filename)
             f >> buf;
             ++netidx;
             Net* net = new Net(netidx);
+            set<int> tmp;
             while (f >> buf) {
                 if (buf == ";") break;
                 int cidx = stoi(buf.substr(1));
-                Cells[cidx]->netlist.push_back(netidx);
-                net->clist.push_back(cidx);
+                if (tmp.count(cidx) == 0) {
+                    Cells[cidx]->netlist.push_back(netidx);
+                    net->clist.push_back(cidx);
+                    tmp.insert(cidx);
+                }
             }
             Nets[netidx] = net;
         }
     }
     f.close();
-    for (int i = 1; i <= nCell; ++i) {
-        Cell* c = Cells[i];
-        std::unique(c->netlist.begin(), c->netlist.end());
-    }
     upperbound = (1 + bf) / 2 * nCell;
     lowerbound = (1 - bf) / 2 * nCell;
     #ifdef _DEBUG
@@ -99,25 +99,39 @@ void FMPartition::initGain()
         }
     }
     another /= 2;
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<> dis(1, nCell);
 
-    map<int, int> tmp;
+    vector<Cell*> tmp = Cells;
+
+    std::sort(tmp.begin(), tmp.end(), Cell());
+    int j = 1;
     for (int i = 0; i < another; ++i) {
-        int r = dis(gen);
-        if (Cells[r]->netlist.size() == 0) {
+        Cell* c = tmp[j];
+        ++j;
+        if (c->netlist.size() == 0) {
             --i;
             continue;
         }
-        if (tmp.count(r) == 0) {
-            tmp[r] = 1;
-            Cells[r]->part ^= 1;
-        }
-        else {
-            --i;
-        }
+        c->part ^= 1;
     }
+//  random_device rd;
+//  mt19937 gen(rd());
+//  uniform_int_distribution<> dis(1, nCell);
+
+//  map<int, int> tmp;
+//  for (int i = 0; i < another; ++i) {
+//      int r = dis(gen);
+//      if (Cells[r]->netlist.size() == 0) {
+//          --i;
+//          continue;
+//      }
+//      if (tmp.count(r) == 0) {
+//          tmp[r] = 1;
+//          Cells[r]->part ^= 1;
+//      }
+//      else {
+//          --i;
+//      }
+//  }
     correctNetP0P1();
     computeGain();
     // calculate size of both part

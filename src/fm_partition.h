@@ -1,6 +1,7 @@
 #ifndef FM_PARTITION_H
 #define FM_PARTITION_H
 
+#include <set>
 #include <list>
 #include <vector>
 #include <map>
@@ -26,7 +27,7 @@ class Net;
 
 class Cell {
     public:
-        //Cell() {lock = false;}
+        Cell() {}
         Cell(int p, int s, int idx)
         {
             part = p;
@@ -37,6 +38,9 @@ class Cell {
         }
         ~Cell() {};
         bool isFree() {return !lock;}
+        bool operator() (Cell* c1, Cell* c2) {
+            return c1->netlist.size() < c2->netlist.size();
+        }
 
         vector<int> netlist; // nets containing Cell i
         int         index; // index of Cell i
