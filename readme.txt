@@ -8,7 +8,7 @@
 	 FMPartition/input/: input cases
 	 FMPartition/output/: outputs
 	 FMPartition/fm: 主程式
-	 FMPartition/Report.doc ： 程式報告
+	 FMPartition/report.doc ： 程式報告
 
 7. 編譯方式說明：        	
    主程式：FMPartition/fm
