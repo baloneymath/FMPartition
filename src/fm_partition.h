@@ -39,7 +39,7 @@ class Cell {
         ~Cell() {};
         bool isFree() {return !lock;}
         bool operator() (Cell* c1, Cell* c2) {
-            return c1->longestNet > c2->longestNet;
+            return c1->longestNet < c2->longestNet;
         }
 
         vector<int> netlist; // nets containing Cell i
