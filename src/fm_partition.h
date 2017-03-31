@@ -39,7 +39,7 @@ class Cell {
         ~Cell() {};
         bool isFree() {return !lock;}
         bool operator() (Cell* c1, Cell* c2) {
-            return c1->netlist.size() < c2->netlist.size();
+            return c1->netlist.size() > c2->netlist.size();
         }
 
         vector<int> netlist; // nets containing Cell i
