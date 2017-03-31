@@ -39,7 +39,7 @@ class Cell {
         ~Cell() {};
         bool isFree() {return !lock;}
         bool operator() (Cell* c1, Cell* c2) {
-            return c1->netlist.size() > c2->netlist.size();
+            return c1->longestNet > c2->longestNet;
         }
 
         vector<int> netlist; // nets containing Cell i
@@ -48,6 +48,7 @@ class Cell {
         int         part; // which partition that Cell i is in
         int         gain; // the gain of Cell
         bool        lock; // if Cell i is locked
+        int         longestNet;
         list<int>::iterator       place; // place in the GainList
 };
 

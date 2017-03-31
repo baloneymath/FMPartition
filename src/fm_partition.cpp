@@ -101,6 +101,14 @@ void FMPartition::initGain()
     another /= 2;
 
     vector<Cell*> tmp = Cells;
+    for (int i = 1; i <= nCell; ++i) {
+        int m = 0;
+        Cell* c = Cells[i];
+        for (int j = 0; j < c->netlist.size(); ++j) {
+            m = max((size_t)m, Nets[c->netlist[j]]->clist.size());
+        }
+        c->longestNet = m;
+    }
 
     std::sort(tmp.begin(), tmp.end(), Cell());
     int j = 1;
